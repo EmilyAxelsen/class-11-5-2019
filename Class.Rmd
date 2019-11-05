@@ -1,0 +1,128 @@
+---
+title: "Class"
+author: "Emily Axelsen"
+date: "11/5/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(infer)
+library(moderndive)
+library(tidyverse)
+
+# Load right away
+
+# Use evals data set (course evaluations from UT)
+
+```
+
+```{r}
+# glimpse, head, summary to first see dataset
+
+# sample_n (sample n number of rows from the tibble)
+
+
+```
+
+
+```{r}
+evals %>%
+  filter(gender == "female") %>%
+  ggplot(aes(x = age, y = score)) +
+  geom_point()
+  
+```
+
+
+```{r}
+lm.obj <- lm(score ~ age + gender, data = evals)
+
+get_regression_table(lm.obj)
+
+# gendermale = higher score by 0.190571 BUT being male does NOT mean you have higher scores 
+# confidence interval = range of possible values
+```
+
+Bootstrap calculation of mean age
+
+```{r}
+evals %>%
+  rep_sample_n(size = nrow(evals), replace = TRUE, reps = 10) %>% 
+  group_by(replicate) %>%
+  summarize(mean_age = mean(age)) %>%
+  summarize(lower = quantile(mean_age, probs = 0.025),
+            upper = quantile(mean_age, probs = 0.975))
+
+  # get_confidence_interval(level = 0.95, type = "percentile") 
+  # get_confidence_interval(level = 0.015, type = "percentile")
+
+# summarize = compress values (don't need all the rows anymore)
+
+# mutate = keep all rows
+
+# can do nrow(evals) for size or 463 (type in console)
+
+# group_by(replicate) to do something to each bootstrap
+  
+# important to remember to ungroup() after grouping your data
+
+```
+
+
+```{r}
+evals %>%
+  rep_sample_n(size = nrow(evals), replace = TRUE, reps = 10) %>% 
+  group_by(replicate) %>%
+  nest() %>%
+  mutate(results = map(data, ~ lm(score ~ age + gender, data = .x))) %>%
+  mutate(coefficients = map(results, ~ coef(.x))) %>%
+  unnest(coefficients) %>%
+  summarize(mean_coef = mean(coefficients))
+
+  
+  # summarize(mean_results = mean(results)) %>%
+  # map(results, coef(.x)) %>%
+  # pluck("age")
+
+
+# first part of map is the data we're workign with
+# coef(lm.obj) to see what's inside lm object
+# .x to access objects within lm
+
+
+# deal with list columns --> map!
+
+# ~ = anonymous function
+
+```
+
+
+
+
+```{r}
+evals %>%
+  rep_sample_n(size = nrow(evals), replace = TRUE, reps = 10) %>% 
+  group_by(replicate) %>%
+  nest() %>%
+  mutate(results = map(data, ~ lm(score ~ age + gender, data = .x))) %>%
+  mutate(coefficients = map(results, ~ coef(.x))) %>%
+  mutate(age_coef = map(coefficients, ~pluck(.x, "age"))) %>%
+  unnest(age_coef) %>%
+  ungroup() %>%
+  summarize(lower = quantile(age_coef, probs = 0.025),
+            upper = quantile(age_coef, probs = 0.975))
+
+# now we've done bootstrap (calculate much more with bootstrap)
+# pretty similar value with bootstrap - can do standard and more compelx stuff
+  
+```
+
+
+
+
+
+
+
+
+
